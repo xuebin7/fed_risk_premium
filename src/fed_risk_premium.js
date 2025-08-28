@@ -23638,8 +23638,61 @@ let riskPremiumData = [];
 
 for (const [k, v] of riskPermiumMap) {
   xData.push(k);
-  riskPremiumData.push(v);
+  riskPremiumData.push(Number(v));
 }
+
+const sortedRiskPremiumData = riskPremiumData.slice().sort((a, b) => a - b);
+const p25 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.25)]; // 25% 分位值
+const p50 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.50)]; // 50% 分位值
+const p75 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.75)]; // 75% 分位值
+
+/**
+ * 计算数据的平均值和标准差
+ * @param {number[]} data - 数值数组
+ * @param {boolean} isSample - 是否为样本数据（默认false，即总体数据）
+ * @returns {Object} 包含平均值、标准差和倍数标准差范围的对象
+ */
+function calculateMeanAndStdDev(data, isSample = false) {
+  // 1. 计算平均值
+  const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+
+  // 2. 计算方差
+  const squaredDifferences = data.map(val => Math.pow(val - mean, 2));
+  const variance = squaredDifferences.reduce((sum, val) => sum + val, 0) /
+    (isSample ? data.length - 1 : data.length);
+
+  // 3. 计算标准差
+  const stdDev = Math.sqrt(variance);
+
+  // 4. 计算倍数标准差范围
+  return {
+    mean: mean,
+    stdDev: stdDev,
+    oneStdDev: {
+      lower: mean - stdDev,
+      upper: mean + stdDev
+    },
+    twoStdDev: {
+      lower: mean - 2 * stdDev,
+      upper: mean + 2 * stdDev
+    },
+    threeStdDev: {
+      lower: mean - 3 * stdDev,
+      upper: mean + 3 * stdDev
+    }
+  };
+}
+
+const statisticsResult = calculateMeanAndStdDev(riskPremiumData);
+
+const upperOneStdDev = statisticsResult.oneStdDev.upper.toFixed(2);
+const lowerOneStdDev = statisticsResult.oneStdDev.lower.toFixed(2);
+
+const upperTwoStdDev = statisticsResult.twoStdDev.upper.toFixed(2);
+const lowerTwoStdDev = statisticsResult.twoStdDev.lower.toFixed(2);
+
+const upperThreeStdDev = statisticsResult.threeStdDev.upper.toFixed(2);
+const lowerThreeStdDev = statisticsResult.threeStdDev.lower.toFixed(2);
 
 let option = {
   title: {
@@ -23653,7 +23706,7 @@ let option = {
     },
   },
   legend: {
-    data: ["风险溢价", "沪深300点位"] // // 图例，对应两个系列
+    data: ["风险溢价", "沪深300点位"] // 图例
   },
   toolbox: {
     show: true,
@@ -23684,8 +23737,8 @@ let option = {
     type: "value",
     name: '沪深300点位', // 左侧Y轴名称和单位
     position: 'right', // 指定位置在右侧
-    min: 1000,
-    max: 10000,
+    min: 0,
+    max: 6600,
     interval: 1000, // 可选：指定刻度间隔
     boundaryGap: [0, "100%"],
     splitLine: {
@@ -23700,6 +23753,9 @@ let option = {
       showSymbol: false,
       data: riskPremiumData,
       yAxisIndex: 0, // 指定此系列使用第一个Y轴（索引0），即左侧Y轴
+      itemStyle: {
+        color: '#0f84f98d',
+      },
       label: {
         show: true,
         position: "bottom",
@@ -23707,6 +23763,90 @@ let option = {
           fontSize: 14,
         },
       },
+      markLine: {
+        data: [
+          // {
+          //   type: 'median',
+          //   name: '风险溢价中位数',
+          //   label: {
+          //     formatter: '中位数: {c}'
+          //   }
+          // },
+          {
+            type: 'average',
+            name: '风险溢价平均值',
+            label: {
+              formatter: '平均值: {c}'
+            }
+          },
+          {
+            name: '正一倍标准差',
+            yAxis: upperOneStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ffd503ff' // 指定颜色
+            },
+            label: {
+              formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
+          {
+            name: '负一倍标准差',
+            yAxis: lowerOneStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ffd503ff' // 指定颜色
+            },
+            label: {
+              formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
+          {
+            name: '正二倍标准差',
+            yAxis: upperTwoStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ff0000ff' // 指定颜色
+            },
+            label: {
+              formatter: '正二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
+          {
+            name: '负二倍标准差',
+            yAxis: lowerTwoStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ff0000ff' // 指定颜色
+            },
+            label: {
+              formatter: '负二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
+          // {
+          //   name: '正三倍标准差',
+          //   yAxis: upperThreeStdDev, // 指定 Y 轴坐标
+          //   lineStyle: {
+          //     type: 'dashed',
+          //     color: '#ff0000ff' // 指定颜色
+          //   },
+          //   label: {
+          //     formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+          //   }
+          // },
+          // {
+          //   name: '负三倍标准差',
+          //   yAxis: lowerThreeStdDev, // 指定 Y 轴坐标
+          //   lineStyle: {
+          //     type: 'dashed',
+          //     color: '#ff0000ff' // 指定颜色
+          //   },
+          //   label: {
+          //     formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+          //   }
+          // },
+        ]
+      }
     },
     {
       name: "沪深300点位",
@@ -23715,6 +23855,9 @@ let option = {
       showSymbol: false,
       data: hs300PointData,
       yAxisIndex: 1, // 指定此系列使用第二个Y轴（索引1），即右侧Y轴
+      itemStyle: {
+        color: '#646363a2',
+      },
       label: {
         show: true,
         position: "bottom",
@@ -23738,7 +23881,7 @@ let option = {
       start: 0,
       end: 100,
       // 可以对dataZoom的滑动条进行样式、位置等配置
-      bottom: 10 // 滑动条距离容器底部的距离
+      bottom: 100 // 滑动条距离容器底部的距离
     }
   ]
 };
