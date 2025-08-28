@@ -23628,7 +23628,7 @@ tenYearHs300PE.forEach((x) => {
   let bondR = tenYearBondMap.get(x["date"]);
   let reciprocal = (1 / x["r"]) * 100;
 
-  riskPermiumMap.set(x["date"], (reciprocal - bondR).toFixed(2));
+  riskPermiumMap.set(x["date"], (reciprocal - bondR));
 });
 
 let hs300PointData = tenYearHs300Point.map((x) => x["point"]);
@@ -23638,13 +23638,12 @@ let riskPremiumData = [];
 
 for (const [k, v] of riskPermiumMap) {
   xData.push(k);
-  riskPremiumData.push(Number(v));
+  riskPremiumData.push(Math.round(v * 100) / 100);
 }
 
 const sortedRiskPremiumData = riskPremiumData.slice().sort((a, b) => a - b);
-const p25 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.25)]; // 25% 分位值
-const p50 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.50)]; // 50% 分位值
-const p75 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.75)]; // 75% 分位值
+const p20 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.20)]; // 20% 分位值
+const p80 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.80)]; // 80% 分位值
 
 /**
  * 计算数据的平均值和标准差
@@ -23685,14 +23684,14 @@ function calculateMeanAndStdDev(data, isSample = false) {
 
 const statisticsResult = calculateMeanAndStdDev(riskPremiumData);
 
-const upperOneStdDev = statisticsResult.oneStdDev.upper.toFixed(2);
-const lowerOneStdDev = statisticsResult.oneStdDev.lower.toFixed(2);
+const upperOneStdDev = statisticsResult.oneStdDev.upper;
+const lowerOneStdDev = statisticsResult.oneStdDev.lower;
 
-const upperTwoStdDev = statisticsResult.twoStdDev.upper.toFixed(2);
-const lowerTwoStdDev = statisticsResult.twoStdDev.lower.toFixed(2);
+const upperTwoStdDev = statisticsResult.twoStdDev.upper;
+const lowerTwoStdDev = statisticsResult.twoStdDev.lower;
 
-const upperThreeStdDev = statisticsResult.threeStdDev.upper.toFixed(2);
-const lowerThreeStdDev = statisticsResult.threeStdDev.lower.toFixed(2);
+const upperThreeStdDev = statisticsResult.threeStdDev.upper;
+const lowerThreeStdDev = statisticsResult.threeStdDev.lower;
 
 let option = {
   title: {
@@ -23726,8 +23725,8 @@ let option = {
     name: '风险溢价值', // 左侧Y轴名称和单位
     position: 'left', // 指定位置在左侧
     min: 0,
-    max: 10,
-    interval: 2, // 可选：指定刻度间隔
+    max: 9,
+    interval: 1, // 可选：指定刻度间隔
     boundaryGap: [0, "100%"],
     splitLine: {
       show: false,
@@ -23737,8 +23736,8 @@ let option = {
     type: "value",
     name: '沪深300点位', // 左侧Y轴名称和单位
     position: 'right', // 指定位置在右侧
-    min: 0,
-    max: 6600,
+    min: 2000,
+    max: 6000,
     interval: 1000, // 可选：指定刻度间隔
     boundaryGap: [0, "100%"],
     splitLine: {
@@ -23806,7 +23805,7 @@ let option = {
             yAxis: upperTwoStdDev, // 指定 Y 轴坐标
             lineStyle: {
               type: 'dashed',
-              color: '#ff0000ff' // 指定颜色
+              color: '#f25c5cff' // 指定颜色
             },
             label: {
               formatter: '正二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
@@ -23817,34 +23816,34 @@ let option = {
             yAxis: lowerTwoStdDev, // 指定 Y 轴坐标
             lineStyle: {
               type: 'dashed',
-              color: '#ff0000ff' // 指定颜色
+              color: '#f25c5cff' // 指定颜色
             },
             label: {
               formatter: '负二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
             }
           },
-          // {
-          //   name: '正三倍标准差',
-          //   yAxis: upperThreeStdDev, // 指定 Y 轴坐标
-          //   lineStyle: {
-          //     type: 'dashed',
-          //     color: '#ff0000ff' // 指定颜色
-          //   },
-          //   label: {
-          //     formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-          //   }
-          // },
-          // {
-          //   name: '负三倍标准差',
-          //   yAxis: lowerThreeStdDev, // 指定 Y 轴坐标
-          //   lineStyle: {
-          //     type: 'dashed',
-          //     color: '#ff0000ff' // 指定颜色
-          //   },
-          //   label: {
-          //     formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-          //   }
-          // },
+          {
+            name: '正三倍标准差',
+            yAxis: upperThreeStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ff0000ff' // 指定颜色
+            },
+            label: {
+              formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
+          {
+            name: '负三倍标准差',
+            yAxis: lowerThreeStdDev, // 指定 Y 轴坐标
+            lineStyle: {
+              type: 'dashed',
+              color: '#ff0000ff' // 指定颜色
+            },
+            label: {
+              formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            }
+          },
         ]
       }
     },
@@ -23867,6 +23866,17 @@ let option = {
       },
     },
   ],
+  visualMap: {
+    type: 'piecewise',
+    show: false,
+    dimension: 1, // 映射维度（1 表示 y 值）
+    seriesIndex: 0,
+    pieces: [
+      { gt: p80, color: '#ff0000ff' },
+      { gt: p20, lte: p80, color: '#0f84f98d' },
+      { lte: p20, color: 'rgba(8, 165, 3, 0.95)' },
+    ]
+  },
   dataZoom: [
     {
       type: 'inside', // 内置型，依靠鼠标滚轮或触摸手势进行缩放（无需滑动条）
