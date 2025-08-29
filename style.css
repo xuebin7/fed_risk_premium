@@ -1,199 +1,174 @@
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
-    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     line-height: 1.6;
-    padding: 12px;
-    min-height: 100vh;
+    color: #333;
+    background-color: #f5f7fa;
+    padding: 0;
+    margin: 0;
 }
 
 .container {
     max-width: 100%;
-    margin: 0 auto;
     padding: 15px;
+    margin: 0 auto;
 }
 
 header {
     text-align: center;
     margin-bottom: 20px;
     padding: 15px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-h1 {
-    font-size: 1.4rem;
+header h1 {
+    font-size: 1.5rem;
     margin-bottom: 8px;
     color: #2c3e50;
-    font-weight: 600;
 }
 
-.description {
-    font-size: 0.85rem;
+header p {
+    font-size: 0.9rem;
     color: #7f8c8d;
-    max-width: 800px;
-    margin: 0 auto;
-    line-height: 1.5;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .chart-container {
     width: 100%;
-    height: 50vh;
-    min-height: 380px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 16px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    margin-bottom: 20px;
-    padding: 12px;
-    position: relative;
-}
-
-.controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.btn {
-    padding: 14px 22px;
-    background: #3498db;
-    color: white;
-    border: none;
+    height: 350px;
+    background: #fff;
     border-radius: 12px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-    flex: 1;
-    min-width: 120px;
-    max-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    padding: 10px;
+}
+
+.sidebar {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
 }
 
-.btn:hover {
-    background: #2980b9;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.info-panel {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 16px;
+.stats-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 20px;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
 }
 
-.info-panel h2 {
-    color: #2c3e50;
+.stats-box h3 {
+    font-size: 1.1rem;
     margin-bottom: 15px;
-    font-size: 1.2rem;
-    font-weight: 600;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
 }
 
-.info-item {
+.stat-item {
     display: flex;
     justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #f1f1f1;
+    margin-bottom: 12px;
 }
 
-.info-item:last-child {
-    border-bottom: none;
-}
-
-.info-label {
+.stat-label {
+    font-size: 0.9rem;
     color: #7f8c8d;
-    font-weight: 500;
 }
 
-.info-value {
-    color: #2c3e50;
+.stat-value {
+    font-size: 0.95rem;
     font-weight: 600;
+    color: #2c3e50;
 }
 
-.footer {
-    text-align: center;
-    color: #95a5a6;
-    font-size: 0.8rem;
-    padding: 15px;
+.explanation {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 20px;
 }
 
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
+.explanation h4 {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.explanation p {
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    color: #34495e;
+}
+
+.explanation ul {
+    padding-left: 20px;
+    margin-top: 8px;
+}
+
+.explanation li {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: #34495e;
+}
+
+/* 桌面端布局 */
+@media (min-width: 768px) {
+    .container {
+        max-width: 1200px;
+        padding: 30px;
     }
 
-    h1 {
-        font-size: 1.3rem;
+    header {
+        padding: 30px;
     }
 
-    .description {
-        font-size: 0.8rem;
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .content {
+        flex-direction: row;
     }
 
     .chart-container {
-        height: 45vh;
-        min-height: 340px;
-        padding: 10px;
+        flex: 3;
+        height: 500px;
     }
 
-    .btn {
-        padding: 12px 18px;
-        font-size: 0.9rem;
-        min-width: 110px;
+    .sidebar {
+        flex: 1;
+        min-width: 300px;
     }
 }
 
-@media (max-width: 480px) {
-    h1 {
-        font-size: 1.2rem;
-    }
-
+/* 移动端小屏幕优化 */
+@media (max-width: 360px) {
     .chart-container {
-        height: 40vh;
-        min-height: 300px;
+        height: 300px;
     }
 
-    .controls {
+    .stat-item {
         flex-direction: column;
-        align-items: center;
-    }
-
-    .btn {
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .info-panel {
-        padding: 15px;
-    }
-
-    .info-panel h2 {
-        font-size: 1.1rem;
     }
 }
 
-/* 触摸设备优化 */
-@media (hover: none) and (pointer: coarse) {
-    .btn {
-        padding: 16px 24px;
-    }
+/* 图表工具栏样式优化 */
+.echarts-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px;
 }

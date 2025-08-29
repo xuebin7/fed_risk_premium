@@ -2597,8 +2597,6 @@ const myChart = echarts.init(chartDom, null, {
   useDirtyRect: false
 });
 
-const { xData, riskPremiumData, hs300ValueData } = generateData();
-
 function generateData() {
   let xData = [];
   let riskPremiumData = [];
@@ -2610,12 +2608,15 @@ function generateData() {
     let hs300PE = x["hs300PE"];
     let reciprocal = (1 / hs300PE) * 100;
 
-    xData.push(date);
+    // 将日期字符串转换为时间戳
+    xData.push(new Date(date).getTime());
     riskPremiumData.push(Math.round((reciprocal - bondR) * 100) / 100);
     hs300ValueData.push(hs300Value);
   });
   return { xData, riskPremiumData, hs300ValueData }
 }
+
+const { xData, riskPremiumData, hs300ValueData } = generateData();
 
 /**
  * 计算数据的平均值和标准差
@@ -2657,10 +2658,18 @@ function calculateStats(data) {
 
 const stats = calculateStats(riskPremiumData);
 
+function formatTimestampAsDateStr(timestamp) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const nartualMonth = date.getUTCMonth() + 1;
+  const d = date.getUTCDate();
+  return `${year}-${(nartualMonth < 10 ? ("0" + nartualMonth) : nartualMonth)}-${d < 10 ? ("0" + d) : d}`;
+}
+
 // 更新统计信息显示
 document.getElementById('meanValue').textContent = stats.mean.toFixed(2) + '%';
 document.getElementById('currentValue').textContent = riskPremiumData[riskPremiumData.length - 1].toFixed(2) + '%';
-document.getElementById('dataRange').textContent = `${xData[0]} - ${xData[xData.length - 1]}`;
+document.getElementById('dataRange').textContent = `${formatTimestampAsDateStr(xData[0])} ~ ${formatTimestampAsDateStr(xData[xData.length - 1])}`;
 
 // 根据当前值给出建议
 const currentValue = riskPremiumData[riskPremiumData.length - 1];
@@ -2670,55 +2679,94 @@ if (currentValue < stats.p20) suggestion = '股票性价比低';
 document.getElementById('suggestion').textContent = suggestion;
 
 function getOption() {
+  // 检测设备类型
+  const isMobile = window.innerWidth <= 768;
   return {
     title: {
-      text: "Fed Risk Premium"
+      text: "Fed Risk Premium",
+      textStyle: {
+        fontSize: isMobile ? 14 : 18
+      },
+      top: isMobile ? 0 : 0,
+      left: 'center'
     },
     tooltip: {
       trigger: "axis",
       axisPointer: {
         animation: false,
         type: 'cross', // 交叉轴线指示器，便于查看同一点的两个Y值
-      }
+      },
+      confine: true // 确保tooltip在容器内显示
     },
     legend: {
-      data: ["风险溢价", "沪深300点位"] // 图例
+      data: ["风险溢价", "沪深300点位"], // 图例
+      top: isMobile ? 50 : 30,
+      textStyle: {
+        fontSize: isMobile ? 10 : 12
+      }
     },
     toolbox: {
       show: true,
       feature: {
-        saveAsImage: {}
+        saveAsImage: {
+          title: '保存为图片',
+          pixelRatio: 2 // 提高导出图片清晰度
+        },
+        top: isMobile ? 5 : 10,
+        right: isMobile ? 5 : 10,
+        itemSize: isMobile ? 12 : 14
       }
     },
+    grid: {
+      left: isMobile ? '5%' : '5%',
+      right: isMobile ? '10%' : '10%',
+      bottom: isMobile ? '18%' : '15%',
+      top: isMobile ? '20%' : '15%',
+      containLabel: true
+    },
     xAxis: {
-      type: "category",
+      type: "time",
       splitLine: {
         show: false,
       },
-      data: xData
+      axisLabel: {
+        interval: 0,
+        fontSize: isMobile ? 10 : 12
+      },
     },
     yAxis: [{
       type: "value",
       name: '风险溢价值', // 左侧Y轴名称和单位
+      nameTextStyle: {
+        fontSize: isMobile ? 10 : 12
+      },
       position: 'left', // 指定位置在左侧
       min: 0,
-      max: 9,
+      max: Math.round((Math.max(...riskPremiumData) + 1) * 100) / 100,
       interval: 1, // 可选：指定刻度间隔
       boundaryGap: [0, "100%"],
       splitLine: {
         show: false,
+      },
+      axisLabel: {
+        fontSize: isMobile ? 10 : 12
       }
     },
     {
       type: "value",
       name: '沪深300点位', // 左侧Y轴名称和单位
+      nameTextStyle: {
+        fontSize: isMobile ? 10 : 12
+      },
       position: 'right', // 指定位置在右侧
       min: 2000,
-      max: 6000,
-      interval: 1000, // 可选：指定刻度间隔
+      max: Math.round((Math.max(...hs300ValueData) + 500) * 100) / 100,
+      interval: 2000, // 可选：指定刻度间隔
       boundaryGap: [0, "100%"],
       splitLine: {
         show: false,
+      }, axisLabel: {
+        fontSize: isMobile ? 10 : 12
       }
     }],
     series: [
@@ -2727,25 +2775,31 @@ function getOption() {
         type: "line",
         stack: 'Total',
         showSymbol: false,
-        data: riskPremiumData,
+        data: xData.map((date, index) => [date, riskPremiumData[index]]),
         yAxisIndex: 0, // 指定此系列使用第一个Y轴（索引0），即左侧Y轴
         itemStyle: {
           color: '#0f84f98d',
         },
         label: {
           show: true,
-          position: "bottom",
+          position: "top",
           textStyle: {
-            fontSize: 14,
-          },
+            fontSize: isMobile ? 9 : 11,
+          }
         },
         markLine: {
+          symbol: 'none',
           data: [
             {
               type: 'average',
               name: '风险溢价平均值',
+              lineStyle: {
+                type: 'solid',
+                width: 1.5
+              },
               label: {
-                formatter: '平均值: {c}'
+                formatter: 'Mean: {c}',
+                fontSize: isMobile ? 9 : 11
               }
             },
             {
@@ -2753,10 +2807,12 @@ function getOption() {
               yAxis: stats.oneStdDev.upper, // 指定 Y 轴坐标
               lineStyle: {
                 type: 'dashed',
-                color: '#ffd503ff' // 指定颜色
+                color: '#ffd503ff',
+                width: 1
               },
               label: {
-                formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+                formatter: '+1σ: {c}', // 标签显示，{c} 会自动替换为 yAxis 的值
+                fontSize: isMobile ? 9 : 11
               }
             },
             {
@@ -2764,10 +2820,12 @@ function getOption() {
               yAxis: stats.oneStdDev.lower, // 指定 Y 轴坐标
               lineStyle: {
                 type: 'dashed',
-                color: '#ffd503ff' // 指定颜色
+                color: '#ffd503ff',
+                width: 1
               },
               label: {
-                formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+                formatter: '-1σ: {c}', // 标签显示，{c} 会自动替换为 yAxis 的值
+                fontSize: isMobile ? 9 : 11
               }
             },
             {
@@ -2775,10 +2833,12 @@ function getOption() {
               yAxis: stats.twoStdDev.upper, // 指定 Y 轴坐标
               lineStyle: {
                 type: 'dashed',
-                color: '#f25c5cff' // 指定颜色
+                color: '#f25c5cff',
+                width: 1
               },
               label: {
-                formatter: '正二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+                formatter: '+2σ: {c}', // 标签显示，{c} 会自动替换为 yAxis 的值
+                fontSize: isMobile ? 9 : 11
               }
             },
             {
@@ -2786,34 +2846,36 @@ function getOption() {
               yAxis: stats.twoStdDev.lower, // 指定 Y 轴坐标
               lineStyle: {
                 type: 'dashed',
-                color: '#f25c5cff' // 指定颜色
+                color: '#f25c5cff',
+                width: 1
               },
               label: {
-                formatter: '负二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+                formatter: '-2σ: {c}', // 标签显示，{c} 会自动替换为 yAxis 的值
+                fontSize: isMobile ? 9 : 11
               }
             },
-            {
-              name: '正三倍标准差',
-              yAxis: stats.threeStdDev.upper, // 指定 Y 轴坐标
-              lineStyle: {
-                type: 'dashed',
-                color: '#ff0000ff' // 指定颜色
-              },
-              label: {
-                formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-              }
-            },
-            {
-              name: '负三倍标准差',
-              yAxis: stats.threeStdDev.lower, // 指定 Y 轴坐标
-              lineStyle: {
-                type: 'dashed',
-                color: '#ff0000ff' // 指定颜色
-              },
-              label: {
-                formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-              }
-            },
+            // {
+            //   name: '正三倍标准差',
+            //   yAxis: stats.threeStdDev.upper, // 指定 Y 轴坐标
+            //   lineStyle: {
+            //     type: 'dashed',
+            //     color: '#ff0000ff' 
+            //   },
+            //   label: {
+            //     formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            //   }
+            // },
+            // {
+            //   name: '负三倍标准差',
+            //   yAxis: stats.threeStdDev.lower, // 指定 Y 轴坐标
+            //   lineStyle: {
+            //     type: 'dashed',
+            //     color: '#ff0000ff' 
+            //   },
+            //   label: {
+            //     formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+            //   }
+            // },
           ]
         }
       },
@@ -2822,7 +2884,7 @@ function getOption() {
         type: "line",
         stack: 'Total',
         showSymbol: false,
-        data: hs300ValueData,
+        data: xData.map((date, index) => [date, hs300ValueData[index]]),
         yAxisIndex: 1, // 指定此系列使用第二个Y轴（索引1），即右侧Y轴
         itemStyle: {
           color: '#646363a2',
@@ -2831,8 +2893,8 @@ function getOption() {
           show: true,
           position: "bottom",
           textStyle: {
-            fontSize: 14,
-          },
+            fontSize: isMobile ? 9 : 11,
+          }
         },
       },
     ],
@@ -2861,7 +2923,11 @@ function getOption() {
         start: 0,
         end: 100,
         // 可以对dataZoom的滑动条进行样式、位置等配置
-        bottom: 100 // 滑动条距离容器底部的距离
+        bottom: isMobile ? '5%' : '3%', // 滑动条距离容器底部的距离
+        height: isMobile ? 25 : 35,
+        textStyle: {
+          fontSize: isMobile ? 10 : 12
+        }
       }
     ]
   }
@@ -2873,18 +2939,6 @@ myChart.setOption(getOption());
 // 响应窗口大小变化
 window.addEventListener('resize', function () {
   myChart.resize();
-});
-
-// 添加按钮事件
-document.getElementById('refreshBtn').addEventListener('click', function () {
-  myChart.setOption(getOption());
-});
-
-document.getElementById('themeBtn').addEventListener('click', function () {
-  const currentTheme = myChart.getOption().backgroundColor || '#fff';
-  myChart.setOption({
-    backgroundColor: currentTheme === '#fff' ? '#243345ff' : '#fff'
-  });
 });
 
 // 初始调整尺寸
