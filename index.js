@@ -2588,47 +2588,48 @@ let statData = [
   { "date": "2025-08-22", "bondR": 1.78, "hs300V": 4378, "hs300PE": 13.97 },
   { "date": "2025-08-25", "bondR": 1.76, "hs300V": 4469.22, "hs300PE": 14.18 },
   { "date": "2025-08-26", "bondR": 1.76, "hs300V": 4452.59, "hs300PE": 14.12 },
-  {
-    "date": "2025-08-27", "bondR": 1.8, "hs300V": 4386.13, "hs300PE": 13.86
-  }
+  { "date": "2025-08-27", "bondR": 1.8, "hs300V": 4386.13, "hs300PE": 13.86 }
 ];
 
-var chartDom = document.getElementById("main");
-var myChart = echarts.init(chartDom);
-
-let xData = [];
-let riskPremiumData = [];
-let hs300ValueData = [];
-statData.forEach((x) => {
-  let date = x["date"];
-  let bondR = x["bondR"];
-  let hs300Value = x["hs300V"];
-  let hs300PE = x["hs300PE"];
-  let reciprocal = (1 / hs300PE) * 100;
-
-  xData.push(date);
-  riskPremiumData.push(Math.round((reciprocal - bondR) * 100) / 100);
-  hs300ValueData.push(hs300Value);
+const chartDom = document.getElementById("chart");
+const myChart = echarts.init(chartDom, null, {
+  renderer: 'canvas',
+  useDirtyRect: false
 });
 
-const sortedRiskPremiumData = riskPremiumData.slice().sort((a, b) => a - b);
-const p20 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.20)]; // 20% 分位值
-const p80 = sortedRiskPremiumData[Math.floor(sortedRiskPremiumData.length * 0.80)]; // 80% 分位值
+const { xData, riskPremiumData, hs300ValueData } = generateData();
+
+function generateData() {
+  let xData = [];
+  let riskPremiumData = [];
+  let hs300ValueData = [];
+  statData.forEach((x) => {
+    let date = x["date"];
+    let bondR = x["bondR"];
+    let hs300Value = x["hs300V"];
+    let hs300PE = x["hs300PE"];
+    let reciprocal = (1 / hs300PE) * 100;
+
+    xData.push(date);
+    riskPremiumData.push(Math.round((reciprocal - bondR) * 100) / 100);
+    hs300ValueData.push(hs300Value);
+  });
+  return { xData, riskPremiumData, hs300ValueData }
+}
 
 /**
  * 计算数据的平均值和标准差
  * @param {number[]} data - 数值数组
- * @param {boolean} isSample - 是否为样本数据（默认false，即总体数据）
  * @returns {Object} 包含平均值、标准差和倍数标准差范围的对象
  */
-function calculateMeanAndStdDev(data, isSample = false) {
+function calculateStats(data) {
+  const sortedData = data.slice().sort((a, b) => a - b);
   // 1. 计算平均值
   const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
 
   // 2. 计算方差
   const squaredDifferences = data.map(val => Math.pow(val - mean, 2));
-  const variance = squaredDifferences.reduce((sum, val) => sum + val, 0) /
-    (isSample ? data.length - 1 : data.length);
+  const variance = squaredDifferences.reduce((sum, val) => sum + val, 0) / data.length;
 
   // 3. 计算标准差
   const stdDev = Math.sqrt(variance);
@@ -2636,6 +2637,8 @@ function calculateMeanAndStdDev(data, isSample = false) {
   // 4. 计算倍数标准差范围
   return {
     mean: mean,
+    p20: sortedData[Math.floor(sortedData.length * 0.20)],
+    p80: sortedData[Math.floor(sortedData.length * 0.80)],
     stdDev: stdDev,
     oneStdDev: {
       lower: mean - stdDev,
@@ -2652,197 +2655,237 @@ function calculateMeanAndStdDev(data, isSample = false) {
   };
 }
 
-const statisticsResult = calculateMeanAndStdDev(riskPremiumData);
+const stats = calculateStats(riskPremiumData);
 
-let option = {
-  title: {
-    text: "Fed Risk Premium" },
-  tooltip: {
-    trigger: "axis",
-    axisPointer: {
-      animation: false,
-      type: 'cross', // 交叉轴线指示器，便于查看同一点的两个Y值
-    } },
-  legend: {
-    data: ["风险溢价", "沪深300点位"] // 图例
-  },
-  toolbox: {
-    show: true,
-    feature: {
-      saveAsImage: {}
-    }
-  },
-  xAxis: {
-    type: "category",
-    splitLine: {
-      show: false,
+// 更新统计信息显示
+document.getElementById('meanValue').textContent = stats.mean.toFixed(2) + '%';
+document.getElementById('currentValue').textContent = riskPremiumData[riskPremiumData.length - 1].toFixed(2) + '%';
+document.getElementById('dataRange').textContent = `${xData[0]} - ${xData[xData.length - 1]}`;
+
+// 根据当前值给出建议
+const currentValue = riskPremiumData[riskPremiumData.length - 1];
+let suggestion = '股债适中';
+if (currentValue > stats.p80) suggestion = '股票性价比高';
+if (currentValue < stats.p20) suggestion = '股票性价比低';
+document.getElementById('suggestion').textContent = suggestion;
+
+function getOption() {
+  return {
+    title: {
+      text: "Fed Risk Premium"
     },
-    data: xData },
-  yAxis: [{
-    type: "value",
-    name: '风险溢价值', // 左侧Y轴名称和单位
-    position: 'left', // 指定位置在左侧
-    min: 0,
-    max: 9,
-    interval: 1, // 可选：指定刻度间隔
-    boundaryGap: [0, "100%"],
-    splitLine: {
-      show: false,
-    } },
-  {
-    type: "value",
-    name: '沪深300点位', // 左侧Y轴名称和单位
-    position: 'right', // 指定位置在右侧
-    min: 2000,
-    max: 6000,
-    interval: 1000, // 可选：指定刻度间隔
-    boundaryGap: [0, "100%"],
-    splitLine: {
-      show: false,
-    } }],
-  series: [
-    {
-      name: "风险溢价",
-      type: "line",
-      stack: 'Total',
-      showSymbol: false,
-      data: riskPremiumData,
-      yAxisIndex: 0, // 指定此系列使用第一个Y轴（索引0），即左侧Y轴
-      itemStyle: {
-        color: '#0f84f98d',
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        animation: false,
+        type: 'cross', // 交叉轴线指示器，便于查看同一点的两个Y值
+      }
+    },
+    legend: {
+      data: ["风险溢价", "沪深300点位"] // 图例
+    },
+    toolbox: {
+      show: true,
+      feature: {
+        saveAsImage: {}
+      }
+    },
+    xAxis: {
+      type: "category",
+      splitLine: {
+        show: false,
       },
-      label: {
-        show: true,
-        position: "bottom",
-        textStyle: {
-          fontSize: 14,
-        },
-      },
-      markLine: {
-        data: [
-          {
-            type: 'average',
-            name: '风险溢价平均值',
-            label: {
-              formatter: '平均值: {c}'
-            }
-          },
-          {
-            name: '正一倍标准差',
-            yAxis: statisticsResult.oneStdDev.upper, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#ffd503ff' // 指定颜色
-            },
-            label: {
-              formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-          {
-            name: '负一倍标准差',
-            yAxis: statisticsResult.oneStdDev.lower, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#ffd503ff' // 指定颜色
-            },
-            label: {
-              formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-          {
-            name: '正二倍标准差',
-            yAxis: statisticsResult.twoStdDev.upper, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#f25c5cff' // 指定颜色
-            },
-            label: {
-              formatter: '正二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-          {
-            name: '负二倍标准差',
-            yAxis: statisticsResult.twoStdDev.lower, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#f25c5cff' // 指定颜色
-            },
-            label: {
-              formatter: '负二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-          {
-            name: '正三倍标准差',
-            yAxis: statisticsResult.threeStdDev.upper, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#ff0000ff' // 指定颜色
-            },
-            label: {
-              formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-          {
-            name: '负三倍标准差',
-            yAxis: statisticsResult.threeStdDev.lower, // 指定 Y 轴坐标
-            lineStyle: {
-              type: 'dashed',
-              color: '#ff0000ff' // 指定颜色
-            },
-            label: {
-              formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
-            }
-          },
-        ]
+      data: xData
+    },
+    yAxis: [{
+      type: "value",
+      name: '风险溢价值', // 左侧Y轴名称和单位
+      position: 'left', // 指定位置在左侧
+      min: 0,
+      max: 9,
+      interval: 1, // 可选：指定刻度间隔
+      boundaryGap: [0, "100%"],
+      splitLine: {
+        show: false,
       }
     },
     {
-      name: "沪深300点位",
-      type: "line",
-      stack: 'Total',
-      showSymbol: false,
-      data: hs300ValueData,
-      yAxisIndex: 1, // 指定此系列使用第二个Y轴（索引1），即右侧Y轴
-      itemStyle: {
-        color: '#646363a2',
+      type: "value",
+      name: '沪深300点位', // 左侧Y轴名称和单位
+      position: 'right', // 指定位置在右侧
+      min: 2000,
+      max: 6000,
+      interval: 1000, // 可选：指定刻度间隔
+      boundaryGap: [0, "100%"],
+      splitLine: {
+        show: false,
+      }
+    }],
+    series: [
+      {
+        name: "风险溢价",
+        type: "line",
+        stack: 'Total',
+        showSymbol: false,
+        data: riskPremiumData,
+        yAxisIndex: 0, // 指定此系列使用第一个Y轴（索引0），即左侧Y轴
+        itemStyle: {
+          color: '#0f84f98d',
+        },
+        label: {
+          show: true,
+          position: "bottom",
+          textStyle: {
+            fontSize: 14,
+          },
+        },
+        markLine: {
+          data: [
+            {
+              type: 'average',
+              name: '风险溢价平均值',
+              label: {
+                formatter: '平均值: {c}'
+              }
+            },
+            {
+              name: '正一倍标准差',
+              yAxis: stats.oneStdDev.upper, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#ffd503ff' // 指定颜色
+              },
+              label: {
+                formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+            {
+              name: '负一倍标准差',
+              yAxis: stats.oneStdDev.lower, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#ffd503ff' // 指定颜色
+              },
+              label: {
+                formatter: '正一倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+            {
+              name: '正二倍标准差',
+              yAxis: stats.twoStdDev.upper, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#f25c5cff' // 指定颜色
+              },
+              label: {
+                formatter: '正二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+            {
+              name: '负二倍标准差',
+              yAxis: stats.twoStdDev.lower, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#f25c5cff' // 指定颜色
+              },
+              label: {
+                formatter: '负二倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+            {
+              name: '正三倍标准差',
+              yAxis: stats.threeStdDev.upper, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#ff0000ff' // 指定颜色
+              },
+              label: {
+                formatter: '正三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+            {
+              name: '负三倍标准差',
+              yAxis: stats.threeStdDev.lower, // 指定 Y 轴坐标
+              lineStyle: {
+                type: 'dashed',
+                color: '#ff0000ff' // 指定颜色
+              },
+              label: {
+                formatter: '负三倍标准差: {c}' // 标签显示，{c} 会自动替换为 yAxis 的值
+              }
+            },
+          ]
+        }
       },
-      label: {
-        show: true,
-        position: "bottom",
-        textStyle: {
-          fontSize: 14,
+      {
+        name: "沪深300点位",
+        type: "line",
+        stack: 'Total',
+        showSymbol: false,
+        data: hs300ValueData,
+        yAxisIndex: 1, // 指定此系列使用第二个Y轴（索引1），即右侧Y轴
+        itemStyle: {
+          color: '#646363a2',
+        },
+        label: {
+          show: true,
+          position: "bottom",
+          textStyle: {
+            fontSize: 14,
+          },
         },
       },
+    ],
+    visualMap: {
+      type: 'piecewise',
+      show: false,
+      dimension: 1, // 映射维度（1 表示 y 值）
+      seriesIndex: 0,
+      pieces: [
+        { gt: stats.p80, color: '#ff0000ff' },
+        { gt: stats.p20, lte: stats.p80, color: '#0f84f98d' },
+        { lte: stats.p20, color: 'rgba(8, 165, 3, 0.95)' },
+      ]
     },
-  ],
-  visualMap: {
-    type: 'piecewise',
-    show: false,
-    dimension: 1, // 映射维度（1 表示 y 值）
-    seriesIndex: 0,
-    pieces: [
-      { gt: p80, color: '#ff0000ff' },
-      { gt: p20, lte: p80, color: '#0f84f98d' },
-      { lte: p20, color: 'rgba(8, 165, 3, 0.95)' },
+    dataZoom: [
+      {
+        type: 'inside', // 内置型，依靠鼠标滚轮或触摸手势进行缩放（无需滑动条）
+        xAxisIndex: 0, // 缩放 xAxis 索引为 0 的坐标轴
+        start: 0,       // 初始缩放范围的起始百分比（0% ~ 100%）
+        end: 100        // 初始缩放范围的结束百分比（0% ~ 100%）
+      },
+      {
+        type: 'slider', // 滑动条型
+        xAxisIndex: 0,
+        show: true,     // 默认显示滑动条dataZoom
+        start: 0,
+        end: 100,
+        // 可以对dataZoom的滑动条进行样式、位置等配置
+        bottom: 100 // 滑动条距离容器底部的距离
+      }
     ]
-  },
-  dataZoom: [
-    {
-      type: 'inside', // 内置型，依靠鼠标滚轮或触摸手势进行缩放（无需滑动条）
-      xAxisIndex: 0, // 缩放 xAxis 索引为 0 的坐标轴
-      start: 0,       // 初始缩放范围的起始百分比（0% ~ 100%）
-      end: 100        // 初始缩放范围的结束百分比（0% ~ 100%）
-    },
-    {
-      type: 'slider', // 滑动条型
-      xAxisIndex: 0,
-      show: true,     // 默认显示滑动条dataZoom
-      start: 0,
-      end: 100,
-      // 可以对dataZoom的滑动条进行样式、位置等配置
-      bottom: 100 // 滑动条距离容器底部的距离
-    }
-  ]
+  }
 };
 
-option && myChart.setOption(option);
+// 设置初始选项
+myChart.setOption(getOption());
+
+// 响应窗口大小变化
+window.addEventListener('resize', function () {
+  myChart.resize();
+});
+
+// 添加按钮事件
+document.getElementById('refreshBtn').addEventListener('click', function () {
+  myChart.setOption(getOption());
+});
+
+document.getElementById('themeBtn').addEventListener('click', function () {
+  const currentTheme = myChart.getOption().backgroundColor || '#fff';
+  myChart.setOption({
+    backgroundColor: currentTheme === '#fff' ? '#243345ff' : '#fff'
+  });
+});
+
+// 初始调整尺寸
+myChart.resize();
