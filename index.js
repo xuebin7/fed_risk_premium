@@ -2606,6 +2606,7 @@ let statData = [
   { "date": "2025-09-17", "bondR": 1.83, "hs300V": 4551.02, "hs300PE": 14.17 },
   { "date": "2025-09-18", "bondR": 1.85, "hs300V": 4498.11, "hs300PE": 13.97 },
   { "date": "2025-09-19", "bondR": 1.88, "hs300V": 4501.92, "hs300PE": 13.97 },
+  { "date": "2025-09-22", "bondR": 1.86, "hs300V": 4522.61, "hs300PE": 13.98 },
 ];
 
 const chartDom = document.getElementById("chart");
